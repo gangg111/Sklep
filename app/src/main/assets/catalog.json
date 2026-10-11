@@ -26,6 +26,48 @@
       ]
     },
     {
+      "package": "com.driftking.lektorai",
+      "name": "Lektor AI",
+      "repo": "gangg111/Lektor_AI_Mobile",
+      "category": "Multimedia",
+      "summary": "Polski lektor AI do filmów z napisami, prosto na telefonie",
+      "description": "Bierze film z napisami, generuje z nich naturalnie brzmiący głos lektora po polsku (Edge-TTS albo OpenAI TTS) i miksuje go z oryginalną ścieżką, z zachowaniem synchronizacji. Kolejka filmów, pełna kontrola brzmienia (głośność LUFS, tempo, tonacja, offset), podgląd 90-sekundowego fragmentu i słownik wymowy. Zakładka PC to pilot do Lektora AI na komputerze: na żywo kolejka, faza renderu, ETA i log, START/STOP także spoza domu.",
+      "icon": "icons/lektor-ai.png",
+      "screenshots": [
+        "https://raw.githubusercontent.com/gangg111/Lektor_AI_Mobile/main/images/01-kolejka.jpg",
+        "https://raw.githubusercontent.com/gangg111/Lektor_AI_Mobile/main/images/02-ustawienia.jpg",
+        "https://raw.githubusercontent.com/gangg111/Lektor_AI_Mobile/main/images/03-podglad.jpg",
+        "https://raw.githubusercontent.com/gangg111/Lektor_AI_Mobile/main/images/04-pc.jpg"
+      ]
+    },
+    {
+      "package": "pl.artur.imageenhancer",
+      "name": "AI Image Enhancer",
+      "repo": "gangg111/AI-Image-Enhancer-Mobile",
+      "category": "Zdjęcia",
+      "summary": "Upscaling, poprawa twarzy i usuwanie tła w 100% offline, na NPU",
+      "description": "Lokalna obróbka zdjęć bez wysyłania czegokolwiek do sieci: upscaling ×4 (Real-ESRGAN), poprawa twarzy, wyostrzanie, odszumianie, usuwanie znaku wodnego i tła (IS-Net). Modele liczą się na NPU Hexagon albo GPU Adreno przez ONNX Runtime QNN. Wymaga telefonu z układem Qualcomm Snapdragon (arm64).",
+      "icon": "icons/ai-image-enhancer.png",
+      "screenshots": []
+    },
+    {
+      "package": "pl.artur.adownloader",
+      "name": "ADownloader",
+      "repo": "gangg111/ADownloader",
+      "category": "Narzędzia",
+      "summary": "Menedżer pobierania w stylu JDownloadera: YouTube, TikTok i hostingi",
+      "description": "Pobieranie plików z hostingów oraz filmów i muzyki z YouTube, TikToka i innych serwisów. Wiele linków naraz, wybór jakości wideo (do 4K) albo samo audio (M4A bez konwersji lub MP3 przez FFmpeg), pauza i zatrzymanie, postęp na bieżąco, menedżer kont premium. Inspirowany JDownloaderem 2.",
+      "icon": "icons/adownloader.png",
+      "screenshots": [
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/6.jpg",
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/2.jpg",
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/5.jpg",
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/3.jpg",
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/1.jpg",
+        "https://raw.githubusercontent.com/gangg111/ADownloader/main/img/4.jpg"
+      ]
+    },
+    {
       "package": "com.gangg111.sklep",
       "name": "LABstore",
       "repo": "gangg111/Sklep",

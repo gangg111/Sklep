@@ -41,6 +41,11 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -74,6 +79,7 @@ private val PlayDark = darkColorScheme(
     onBackground = Color(0xFFE3E3E3), onSurface = Color(0xFFE3E3E3), onSurfaceVariant = Color(0xFFC4C7C5),
     surfaceContainerLow = Color(0xFF1B1B1B), surfaceContainer = Color(0xFF1E1F21),
     surfaceContainerHigh = Color(0xFF292A2C), surfaceVariant = Color(0xFF1E1F21),
+    surfaceContainerHighest = Color(0xFF3A3A3C), surfaceContainerLowest = Color.Black,
     outline = Color(0xFF8E918F), outlineVariant = Color(0xFF444746),
 )
 private val PlayLight = lightColorScheme(
@@ -83,6 +89,7 @@ private val PlayLight = lightColorScheme(
     onBackground = Color(0xFF1F1F1F), onSurface = Color(0xFF1F1F1F), onSurfaceVariant = Color(0xFF444746),
     surfaceContainerLow = Color(0xFFF8FAFD), surfaceContainer = Color(0xFFF0F4F9),
     surfaceContainerHigh = Color(0xFFE9EEF6), surfaceVariant = Color(0xFFF0F4F9),
+    surfaceContainerHighest = Color(0xFFDDE3EA), surfaceContainerLowest = Color.White,
     outline = Color(0xFF747775), outlineVariant = Color(0xFFC4C7C5),
 )
 
@@ -447,44 +454,258 @@ private fun SearchScreen(onOpen: (String) -> Unit) {
     }
 }
 
+private enum class YouPage { Menu, Manage, Updates, Settings }
+
+/** Zakładka „Ty” na wzór menu konta Google Play i ekranu „Zarządzaj aplikacjami”. */
 @Composable
 private fun YouScreen(onOpen: (String) -> Unit) {
+    var page by rememberSaveable { mutableStateOf(YouPage.Menu) }
+    BackHandler(page != YouPage.Menu) { page = if (page == YouPage.Updates) YouPage.Manage else YouPage.Menu }
+    when (page) {
+        YouPage.Menu -> YouMenu { page = it }
+        YouPage.Manage -> ManageScreen(onOpen, { page = YouPage.Menu }) { page = YouPage.Updates }
+        YouPage.Updates -> UpdatesScreen(onOpen) { page = YouPage.Manage }
+        YouPage.Settings -> SettingsScreen { page = YouPage.Menu }
+    }
+}
+
+@Composable
+private fun YouMenu(go: (YouPage) -> Unit) {
     val ctx = LocalContext.current
+    val c = MaterialTheme.colorScheme
+    val st = states()
+    val updates = listed(ctx).count { st[it.pkg] == State.Update }
+    val version = remember { Store.installedVersion(ctx, ctx.packageName)?.second ?: "" }
+    val open = { url: String -> ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    Column(
+        Modifier.fillMaxSize().background(c.surfaceContainerHighest).verticalScroll(rememberScrollState())
+            .padding(16.dp, 16.dp, 16.dp, 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(c.surfaceContainerLowest).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(painterResource(R.drawable.logo), null, Modifier.size(56.dp).clip(CircleShape))
+            Column(Modifier.padding(start = 16.dp)) {
+                Text("LABstore", fontSize = 22.sp, fontWeight = FontWeight.Medium)
+                Text("$PUBLISHER  •  wersja $version", color = c.onSurfaceVariant)
+            }
+        }
+        MenuGroup(
+            listOf(
+                MenuItem(Icons.Default.List, "Zarządzaj aplikacjami", if (updates > 0) "$updates" else null) { go(YouPage.Manage) },
+                MenuItem(Icons.Default.Notifications, "Powiadomienia") {
+                    ctx.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName),
+                    )
+                },
+                MenuItem(Icons.Default.Lock, "Bezpieczeństwo", "SHA-256") {
+                    Store.message.value = "Każdy plik APK jest sprawdzany sumą SHA-256 z GitHuba przed instalacją"
+                },
+            ),
+        )
+        MenuGroup(
+            listOf(
+                MenuItem(Icons.Default.Settings, "Ustawienia") { go(YouPage.Settings) },
+                MenuItem(Icons.Default.Info, "Pomoc i opinie") { open("https://github.com/gangg111/Sklep/issues") },
+            ),
+        )
+        Text(
+            "O LABstore", Modifier.align(Alignment.CenterHorizontally).clickable { open("https://github.com/gangg111/Sklep") }
+                .padding(12.dp),
+            color = c.onSurface,
+        )
+    }
+}
+
+private class MenuItem(val icon: ImageVector, val title: String, val trailing: String? = null, val onClick: () -> Unit)
+
+/** Grupa wierszy jak w menu Play: jedna zaokrąglona karta, wiersze rozdzielone cienką przerwą w kolorze tła. */
+@Composable
+private fun MenuGroup(items: List<MenuItem>) {
+    val c = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        items.forEach { m ->
+            Row(
+                Modifier.fillMaxWidth().background(c.surfaceContainerLowest).clickable(onClick = m.onClick).padding(20.dp, 22.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(m.icon, null, Modifier.size(26.dp))
+                Text(m.title, Modifier.weight(1f).padding(start = 20.dp), fontSize = 18.sp)
+                m.trailing?.let { Text(it, color = c.onSurface) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubTopBar(title: String, onBack: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(4.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Wstecz") }
+        Text(title, Modifier.padding(start = 12.dp), fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun updateAll(ctx: Context, apps: List<AppEntry>) =
+    apps.forEach { a -> if (Store.jobs[a.pkg] == null) Store.releases[a.pkg]?.let { requestInstall(ctx, a, it) } }
+
+@Composable
+private fun ManageScreen(onOpen: (String) -> Unit, onBack: () -> Unit, onUpdates: () -> Unit) {
+    val ctx = LocalContext.current
+    val c = MaterialTheme.colorScheme
     val st = states()
     val installed = listed(ctx).filter { st[it.pkg] != State.NotInstalled }
     val updates = installed.filter { st[it.pkg] == State.Update }
-    LazyColumn(Modifier.fillMaxSize()) {
-        item {
-            Text("Zarządzaj aplikacjami", Modifier.padding(16.dp, 20.dp, 16.dp, 4.dp), fontSize = 24.sp)
-        }
-        item {
-            Row(Modifier.padding(16.dp, 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (updates.isEmpty()) "Wszystkie aplikacje są aktualne" else "Dostępne aktualizacje: ${updates.size}",
-                    Modifier.weight(1f), style = MaterialTheme.typography.titleMedium,
-                )
-                if (updates.isNotEmpty()) Button({
-                    updates.forEach { a -> Store.releases[a.pkg]?.let { requestInstall(ctx, a, it) } }
-                }) { Text("Aktualizuj wszystkie") }
+    var tab by rememberSaveable { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        SubTopBar("Zarządzaj aplikacjami", onBack)
+        TabRow(
+            tab, containerColor = c.background,
+            indicator = { pos ->
+                with(TabRowDefaults) {
+                    PrimaryIndicator(Modifier.tabIndicatorOffset(pos[tab]), width = 64.dp, color = c.primary)
+                }
+            },
+        ) {
+            listOf("Przegląd", "Zarządzaj").forEachIndexed { i, t ->
+                Tab(tab == i, { tab = i }, text = { Text(t, fontSize = 16.sp) }, unselectedContentColor = c.onSurfaceVariant)
             }
         }
-        item { SectionHeader("Zainstalowane (${installed.size})") }
-        items(installed, key = { it.pkg }) { a -> AppRow(a, st[a.pkg]!!, onOpen) { SmallAction(a, st[a.pkg]!!, onOpen) } }
-        item { SectionHeader("Ustawienia") }
-        item {
-            val prefs = Store.prefs(ctx)
-            var notify by remember { mutableStateOf(prefs.getBoolean("notify", true)) }
-            var beta by remember { mutableStateOf(prefs.getBoolean("beta", false)) }
-            SettingSwitch("Powiadamiaj o aktualizacjach", "Sprawdzanie w tle co kilka godzin", notify) {
-                notify = it
-                prefs.edit().putBoolean("notify", it).apply()
-                UpdateCheckJob.schedule(ctx)
+        if (tab == 0) Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 12.dp)) {
+            OverviewRow(Icons.Default.Lock, "Weryfikacja plików włączona", "Każde APK sprawdzane sumą SHA-256 przed instalacją")
+            OverviewRow(
+                Icons.Default.Refresh,
+                if (updates.isEmpty()) "Aplikacje są aktualne" else "Dostępne aktualizacje",
+                if (updates.isEmpty()) "Brak oczekujących aktualizacji" else "${updates.size} ${plural(updates.size)}",
+            ) {
+                if (updates.isNotEmpty()) Row(Modifier.padding(top = 4.dp)) {
+                    TextButton({ updateAll(ctx, updates) }) { Text("Aktualizuj wszystkie", fontSize = 16.sp) }
+                    TextButton(onUpdates) { Text("Zobacz szczegóły", fontSize = 16.sp) }
+                }
             }
-            SettingSwitch("Pokaż wersje testowe", "Wydania oznaczone na GitHubie jako pre-release", beta) {
-                beta = it
-                prefs.edit().putBoolean("beta", it).apply()
-                Store.refresh(ctx)
+            val (used, total) = remember {
+                val f = android.os.StatFs(android.os.Environment.getDataDirectory().path)
+                (f.totalBytes - f.availableBytes) to f.totalBytes
             }
+            OverviewRow(Icons.Default.Info, "Zajęte ${gb(used)} z ${gb(total)}", null) {
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp, end = 4.dp).height(4.dp)) {
+                    val frac = used.toFloat() / total
+                    Box(Modifier.weight(frac).fillMaxHeight().clip(CircleShape).background(c.primary))
+                    Spacer(Modifier.width(6.dp))
+                    Box(Modifier.weight(1 - frac).fillMaxHeight().clip(CircleShape).background(c.surfaceContainerHigh))
+                }
+            }
+            OverviewRow(Icons.Default.Home, "Zainstalowane z katalogu", "${installed.size} z ${listed(ctx).size} aplikacji")
+        } else LazyColumn {
+            items(installed, key = { it.pkg }) { a -> AppRow(a, st[a.pkg]!!, onOpen) { SmallAction(a, st[a.pkg]!!, onOpen) } }
+            if (installed.isEmpty()) item {
+                Text("Nie masz jeszcze aplikacji z LABstore", Modifier.padding(20.dp), color = c.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+private fun plural(n: Int) = when {
+    n == 1 -> "oczekująca aktualizacja"
+    n % 10 in 2..4 && n % 100 !in 12..14 -> "oczekujące aktualizacje"
+    else -> "oczekujących aktualizacji"
+}
+
+private fun gb(b: Long) = if (b >= 1_000_000_000_000) "%.1f TB".format(b / 1e12) else "%.0f GB".format(b / 1e9)
+
+@Composable
+private fun OverviewRow(icon: ImageVector, title: String, sub: String?, extra: @Composable ColumnScope.() -> Unit = {}) {
+    Row(Modifier.fillMaxWidth().padding(20.dp, 14.dp)) {
+        Icon(icon, null, Modifier.padding(top = 2.dp).size(26.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(start = 28.dp)) {
+            Text(title, fontSize = 18.sp)
+            sub?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge) }
+            extra()
+        }
+    }
+}
+
+/** „Pobrane” z Play: lista aktualizacji, rozwijane notatki wydania, „Zaktualizuj” przy każdej. */
+@Composable
+private fun UpdatesScreen(onOpen: (String) -> Unit, onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val c = MaterialTheme.colorScheme
+    val st = states()
+    val updates = listed(ctx).filter { st[it.pkg] == State.Update || Store.jobs[it.pkg] != null }
+    Column(Modifier.fillMaxSize()) {
+        SubTopBar("Aktualizacje", onBack)
+        Row(Modifier.padding(20.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Dostępne aktualizacje", Modifier.weight(1f), fontSize = 20.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            if (updates.isNotEmpty()) Button({ updateAll(ctx, updates) }, Modifier.height(44.dp)) {
+                Text("Aktualizuj wszystkie", fontSize = 16.sp)
+            }
+        }
+        if (updates.isEmpty()) Text("Wszystkie aplikacje są aktualne", Modifier.padding(20.dp), color = c.onSurfaceVariant)
+        LazyColumn {
+            items(updates, key = { it.pkg }) { a ->
+                var expanded by rememberSaveable(a.pkg) { mutableStateOf(false) }
+                val rel = Store.releases[a.pkg]
+                val task = Store.jobs[a.pkg]
+                Column(Modifier.fillMaxWidth().clickable { onOpen(a.pkg) }.padding(20.dp, 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AppIcon(a, 48.dp)
+                        Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                            Text(a.name, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                when (task) {
+                                    is Task.Downloading -> "${percent(task.done, task.total)}% z ${mb(task.total)}"
+                                    is Task.Paused -> "Wstrzymano ${percent(task.done, task.total)}%"
+                                    Task.Verifying -> "Sprawdzanie…"
+                                    Task.Installing -> "Instalowanie…"
+                                    null -> listOfNotNull(rel?.tag, rel?.let { mb(it.size) }).joinToString("  •  ")
+                                },
+                                color = c.onSurfaceVariant,
+                            )
+                        }
+                        IconButton({ expanded = !expanded }) {
+                            Icon(
+                                Icons.Default.KeyboardArrowDown, if (expanded) "Zwiń" else "Co nowego",
+                                Modifier.graphicsLayer { rotationZ = if (expanded) 180f else 0f },
+                            )
+                        }
+                        when (task) {
+                            null -> OutlinedButton({ rel?.let { requestInstall(ctx, a, it) } }) { Text("Zaktualizuj") }
+                            is Task.Paused -> OutlinedButton({ resume(ctx, a, task) }) { Text("Wznów") }
+                            else -> CircularProgressIndicator(Modifier.padding(horizontal = 16.dp).size(28.dp), strokeWidth = 3.dp)
+                        }
+                    }
+                    if (expanded) Text(
+                        rel?.notes?.takeIf { it.isNotBlank() }?.let { plain(it) } ?: "Brak opisu zmian",
+                        Modifier.padding(start = 64.dp, top = 8.dp), color = c.onSurfaceVariant,
+                        maxLines = 10, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val prefs = Store.prefs(ctx)
+    var notify by remember { mutableStateOf(prefs.getBoolean("notify", true)) }
+    var beta by remember { mutableStateOf(prefs.getBoolean("beta", false)) }
+    Column(Modifier.fillMaxSize()) {
+        SubTopBar("Ustawienia", onBack)
+        SettingSwitch("Powiadamiaj o aktualizacjach", "Sprawdzanie w tle co kilka godzin", notify) {
+            notify = it
+            prefs.edit().putBoolean("notify", it).apply()
+            UpdateCheckJob.schedule(ctx)
+        }
+        SettingSwitch("Pokaż wersje testowe", "Wydania oznaczone na GitHubie jako pre-release", beta) {
+            beta = it
+            prefs.edit().putBoolean("beta", it).apply()
+            Store.refresh(ctx)
         }
     }
 }
