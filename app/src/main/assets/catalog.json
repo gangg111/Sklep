@@ -1,0 +1,40 @@
+{
+  "apps": [
+    {
+      "package": "com.ciuchy.vwp",
+      "name": "Ciucholand",
+      "repo": "gangg111/Ciucholand",
+      "category": "Narzędzia",
+      "summary": "Terminy odbioru odzieży roboczej zamiast papierowej książeczki",
+      "description": "Pilnuje, kiedy przysługuje kolejny odbiór ciuchów roboczych: rodzaj, rozmiar, ilość, data wydania i co ile miesięcy. Przypomnienia o terminach, historia odbiorów, odkładanie przypomnień, eksport i import danych.",
+      "icon": "icons/ciucholand.png",
+      "screenshots": [
+        "https://raw.githubusercontent.com/gangg111/Ciucholand/main/screenshot.jpg"
+      ]
+    },
+    {
+      "package": "com.dsh.mobile",
+      "name": "DSH Mobile",
+      "repo": "gangg111/DeepSeek-Harness-Mobile",
+      "category": "Programowanie",
+      "summary": "DeepSeek Harness na telefonie, bez Termuxa i roota, po polsku",
+      "description": "Pełny DeepSeek Harness w jednym APK: polski interfejs, komplet narzędzi programistycznych (kompilatory, Python, Node, .NET 10, PowerShell), pluginy, TTS i ekran Code, który przenosi sesje razem z plikami projektu między komputerem a telefonem przez wbudowany Tailscale.",
+      "icon": "icons/dsh-mobile.png",
+      "screenshots": [
+        "https://raw.githubusercontent.com/gangg111/DeepSeek-Harness-Mobile/main/docs/screenshots/screenshot-1.jpg",
+        "https://raw.githubusercontent.com/gangg111/DeepSeek-Harness-Mobile/main/docs/screenshots/screenshot-2.jpg"
+      ]
+    },
+    {
+      "package": "com.gangg111.sklep",
+      "name": "Sklep",
+      "repo": "gangg111/Sklep",
+      "category": "Narzędzia",
+      "summary": "Sklep z aplikacjami DK-LAB: instalacja i aktualizacje w jednym miejscu",
+      "description": "Lista aplikacji DK-LAB z wydań na GitHubie. Instalacja jednym przyciskiem, pobieranie w tle z wznawianiem po przerwie, sprawdzanie sumy SHA-256, powiadomienia o nowych wersjach, historia wersji i wersje testowe. Sklep aktualizuje też sam siebie.",
+      "icon": "icons/sklep.png",
+      "screenshots": [],
+      "apk": "sklep.apk"
+    }
+  ]
+}
