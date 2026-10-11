@@ -131,7 +131,7 @@ private enum class Tab { Apps, Search, You }
 private fun stateOf(ctx: Context, a: AppEntry): State {
     val inst = Store.installedVersion(ctx, a.pkg) ?: return State.NotInstalled
     val rel = Store.releases[a.pkg] ?: return State.Installed
-    return if (Store.isNewer(rel, inst)) State.Update else State.Installed
+    return if (Store.isNewer(ctx, a.pkg, rel, inst)) State.Update else State.Installed
 }
 
 /** Stany wszystkich aplikacji, przeliczane po powrocie do apki i po wczytaniu wydań. */
@@ -931,7 +931,7 @@ private fun VersionRow(a: AppEntry, rel: Release, installed: Pair<Long, String>?
     val c = MaterialTheme.colorScheme
     var askDowngrade by remember { mutableStateOf(false) }
     val latest = Store.releases[a.pkg]
-    val current = installed != null && rel.apkUrl == latest?.apkUrl && !Store.isNewer(latest, installed)
+    val current = installed != null && rel.apkUrl == latest?.apkUrl && !Store.isNewer(ctx, a.pkg, latest, installed)
     Row(Modifier.fillMaxWidth().padding(20.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -945,7 +945,7 @@ private fun VersionRow(a: AppEntry, rel: Release, installed: Pair<Long, String>?
             )
         }
         if (idle && !current && a.pkg != ctx.packageName) OutlinedButton({
-            if (installed != null && !Store.isNewer(rel, installed)) askDowngrade = true else requestInstall(ctx, a, rel)
+            if (installed != null && !Store.isNewer(ctx, a.pkg, rel, installed)) askDowngrade = true else requestInstall(ctx, a, rel)
         }) { Text("Zainstaluj") }
     }
     if (askDowngrade) AlertDialog(

@@ -135,7 +135,7 @@ class UpdateCheckJob : JobService() {
             val rel = Store.releases[a.pkg] ?: continue
             val inst = Store.installedVersion(ctx, a.pkg) ?: continue
             // Każdą wersję zgłaszamy tylko raz.
-            if (!Store.isNewer(rel, inst) || prefs.getString("notified_${a.pkg}", null) == rel.tag) continue
+            if (!Store.isNewer(ctx, a.pkg, rel, inst) || prefs.getString("notified_${a.pkg}", null) == rel.tag) continue
             nm.notify(
                 a.pkg.hashCode(),
                 Notification.Builder(ctx, CH_UPDATES)

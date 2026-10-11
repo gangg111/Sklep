@@ -38,7 +38,7 @@ data class AppEntry(
 )
 
 data class Release(
-    val tag: String, val notes: String, val date: String, val prerelease: Boolean,
+    val tag: String, val notes: String, val date: String, val published: Long, val prerelease: Boolean,
     val apkUrl: String, val size: Long, val sha256: String?, val versionCode: Long?,
 )
 
@@ -138,6 +138,7 @@ object Store {
             Release(
                 tag = r.getString("tag_name"), notes = r.optString("body"),
                 date = r.optString("published_at").take(10), prerelease = r.optBoolean("prerelease"),
+                published = runCatching { java.time.Instant.parse(r.getString("published_at")).toEpochMilli() }.getOrDefault(0),
                 apkUrl = apk.getString("browser_download_url"), size = apk.getLong("size"),
                 sha256 = apk.optString("digest").takeIf { it.startsWith("sha256:") }?.removePrefix("sha256:"),
                 versionCode = null,
@@ -161,8 +162,33 @@ object Store {
         null
     }
 
-    fun isNewer(rel: Release, installed: Pair<Long, String>): Boolean =
-        rel.versionCode?.let { it > installed.first } ?: (compareVersions(rel.tag, installed.second) > 0)
+    /**
+     * Czy wydanie jest nowsze od zainstalowanej wersji. Tag wydania bywa niezgodny z versionName w APK
+     * (AI Image Enhancer v1.1.0 ma w środku versionName 1.0), więc kolejność źródeł prawdy:
+     * versionCode z <apk>.json → zapis, które wydanie LABstore sam zainstalował → data instalacji przez
+     * LABstore późniejsza niż publikacja wydania → dopiero porównanie tagu z versionName.
+     */
+    fun isNewer(ctx: Context, pkg: String, rel: Release, installed: Pair<Long, String>): Boolean {
+        rel.versionCode?.let { return it > installed.first }
+        prefs(ctx).getString("installed_$pkg", null)?.split('|')?.let { (tag, vc) ->
+            if (vc.toLongOrNull() == installed.first) return rel.tag != tag && compareVersions(rel.tag, tag) > 0
+        }
+        if (installedByUsAfter(ctx, pkg, rel.published)) return false
+        return compareVersions(rel.tag, installed.second) > 0
+    }
+
+    private fun installedByUsAfter(ctx: Context, pkg: String, published: Long): Boolean = runCatching {
+        if (published <= 0 || android.os.Build.VERSION.SDK_INT < 30) return false
+        val pm = ctx.packageManager
+        pm.getInstallSourceInfo(pkg).installingPackageName == ctx.packageName &&
+            pm.getPackageInfo(pkg, 0).lastUpdateTime >= published
+    }.getOrDefault(false)
+
+    /** Po udanej instalacji: zapamiętaj, które wydanie dało tę wersję aplikacji. */
+    fun rememberInstalled(ctx: Context, pkg: String, tag: String) {
+        val vc = installedVersion(ctx, pkg)?.first ?: return
+        prefs(ctx).edit().putString("installed_$pkg", "$tag|$vc").apply()
+    }
 
     private fun compareVersions(a: String, b: String): Int {
         val x = Regex("\\d+").findAll(a.substringBefore('-')).map { it.value.toLong() }.toList()
@@ -282,7 +308,7 @@ object Store {
                     jobs[a.pkg] = Task.Installing
                     clearSession(app, a.pkg)
                     val cb = PendingIntent.getBroadcast(
-                        app, id, Intent(app, InstallReceiver::class.java).putExtra("pkg", a.pkg),
+                        app, id, Intent(app, InstallReceiver::class.java).putExtra("pkg", a.pkg).putExtra("tag", rel.tag),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
                     )
                     s.commit(cb.intentSender)
@@ -356,6 +382,7 @@ class InstallReceiver : BroadcastReceiver() {
                 ctx.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             }
             PackageInstaller.STATUS_SUCCESS -> {
+                intent.getStringExtra("tag")?.let { Store.rememberInstalled(ctx, pkg, it) }
                 Store.jobs.remove(pkg)
                 Store.installedTick.value++
                 Store.message.value = "Zainstalowano"
