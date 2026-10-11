@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Wymagane przez JobScheduler dla zadania z warunkiem sieci (bez tego schedule() rzuca SecurityException). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -15,7 +17,8 @@
         tools:ignore="QueryAllPackagesPermission" />
 
     <application
-        android:label="Sklep"
+        android:name=".App"
+        android:label="LABstore"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Sklep"

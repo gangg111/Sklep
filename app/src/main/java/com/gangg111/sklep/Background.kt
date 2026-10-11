@@ -102,13 +102,14 @@ class UpdateCheckJob : JobService() {
                 return
             }
             if (js.getPendingJob(ID) != null) return
-            js.schedule(
+            // Powiadomienia to dodatek: błąd planowania nie może blokować startu apki.
+            runCatching { js.schedule(
                 JobInfo.Builder(ID, ComponentName(ctx, UpdateCheckJob::class.java))
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setPeriodic(6 * 60 * 60 * 1000L)
                     .setPersisted(true)
                     .build(),
-            )
+            ) }.onFailure { Store.message.value = "Nie udało się włączyć sprawdzania w tle: ${it.message}" }
         }
     }
 

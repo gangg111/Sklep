@@ -12,8 +12,8 @@ android {
         applicationId = "com.gangg111.sklep"
         minSdk = 29
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 6
+        versionName = "1.2.2"
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 

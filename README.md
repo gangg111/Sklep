@@ -1,4 +1,4 @@
-# Sklep
+# LABstore
 
 Sklep z aplikacjami DK-LAB na Androida, w wyglądzie Google Play. Lista aplikacji to [`catalog.json`](catalog.json), a pliki APK pochodzą z wydań (Releases) repozytoriów poszczególnych aplikacji.
 
@@ -6,11 +6,11 @@ Sklep z aplikacjami DK-LAB na Androida, w wyglądzie Google Play. Lista aplikacj
 
 ## Instalacja
 
-Pobierz `sklep.apk` z [Releases](../../releases/latest). Przy pierwszej instalacji aplikacji ze Sklepu Android poprosi o zgodę na instalowanie aplikacji z tego źródła.
+Pobierz `labstore.apk` z [Releases](../../releases/latest). Przy pierwszej instalacji aplikacji z LABstore Android poprosi o zgodę na instalowanie aplikacji z tego źródła.
 
-## Dodanie aplikacji do Sklepu
+## Dodanie aplikacji do LABstore
 
-Dopisz wpis do `catalog.json` i wypchnij zmianę. Sklep pobierze nowy katalog przy następnym odświeżeniu, bez przebudowy:
+Dopisz wpis do `catalog.json` i wypchnij zmianę. LABstore pobierze nowy katalog przy następnym odświeżeniu, bez przebudowy:
 
 ```json
 {
@@ -26,7 +26,7 @@ Dopisz wpis do `catalog.json` i wypchnij zmianę. Sklep pobierze nowy katalog pr
 }
 ```
 
-- `apk` jest opcjonalne. Bez niego Sklep bierze pierwszy plik `.apk` z wydania.
+- `apk` jest opcjonalne. Bez niego LABstore bierze pierwszy plik `.apk` z wydania.
 - Wersja to tag wydania (np. `v1.2.0`) porównywany z `versionName`. Dokładniej działa plik `<nazwa-apk>.json` z polem `versionCode` dołączony do wydania obok APK.
 - Wydanie oznaczone jako pre-release widać tylko po włączeniu „Pokaż wersje testowe”.
 

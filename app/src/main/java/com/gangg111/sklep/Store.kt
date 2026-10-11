@@ -312,7 +312,7 @@ object Store {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15_000
         c.readTimeout = 30_000
-        c.setRequestProperty("User-Agent", "Sklep-gangg111")
+        c.setRequestProperty("User-Agent", "LABstore")
         if (from > 0) c.setRequestProperty("Range", "bytes=$from-")
         if (c.responseCode !in 200..299) {
             val code = c.responseCode

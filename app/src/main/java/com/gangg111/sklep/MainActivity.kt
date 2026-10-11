@@ -154,7 +154,8 @@ private fun StoreApp() {
     }
     val app = Store.apps.value.firstOrNull { it.pkg == open }
     BackHandler(app != null || tab != Tab.Apps) { if (app != null) open = null else tab = Tab.Apps }
-    val updates = states().count { it.value == State.Update }
+    val ctx = LocalContext.current
+    val updates = states().count { it.value == State.Update && it.key != ctx.packageName }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snack) },
@@ -201,7 +202,8 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
     val ctx = LocalContext.current
     val st = states()
     var category by rememberSaveable { mutableStateOf<String?>(null) }
-    val all = Store.apps.value
+    val all = listed(ctx)
+    val self = Store.apps.value.firstOrNull { it.pkg == ctx.packageName }
     val apps = all.filter { category == null || it.category == category }
     val updates = apps.filter { st[it.pkg] == State.Update }
     // Wyróżniona: aplikacja z najświeższym wydaniem.
@@ -210,10 +212,8 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
             Row(Modifier.padding(16.dp, 12.dp, 8.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF01875F))) {
-                    Image(painterResource(R.drawable.ic_fg), null, Modifier.fillMaxSize())
-                }
-                Text("Sklep", Modifier.padding(start = 12.dp).weight(1f), fontSize = 22.sp)
+                Image(painterResource(R.drawable.logo), null, Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)))
+                Text("LABstore", Modifier.padding(start = 12.dp).weight(1f), fontSize = 22.sp)
                 IconButton({ Store.refresh(ctx) }) { Icon(Icons.Default.Refresh, "Odśwież") }
             }
         }
@@ -224,6 +224,7 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
                 items(cats) { c -> PlayChip(c, category == c) { category = if (category == c) null else c } }
             }
         }
+        if (self != null && (st[self.pkg] == State.Update || Store.jobs[self.pkg] != null)) item { SelfUpdateBanner(self) }
         if (Store.loading.value) item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(16.dp, 12.dp, 16.dp, 0.dp)) }
         if (Store.offline.value) item {
             Text(
@@ -239,6 +240,26 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
         }
         item { SectionHeader(category ?: "Wszystkie aplikacje") }
         items(apps, key = { it.pkg }) { AppRow(it, st[it.pkg]!!, onOpen) }
+    }
+}
+
+/** Aplikacje do pokazania na listach: sam LABstore jest w katalogu tylko po to, żeby się aktualizował. */
+private fun listed(ctx: Context) = Store.apps.value.filter { it.pkg != ctx.packageName }
+
+@Composable
+private fun SelfUpdateBanner(self: AppEntry) {
+    val c = MaterialTheme.colorScheme
+    val rel = Store.releases[self.pkg]
+    Row(
+        Modifier.padding(16.dp, 16.dp, 16.dp, 0.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .background(c.secondaryContainer).padding(16.dp, 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text("Dostępna nowa wersja LABstore", color = c.onSecondaryContainer, style = MaterialTheme.typography.titleMedium)
+            rel?.let { Text("${it.tag}  •  ${mb(it.size)}", color = c.onSecondaryContainer, style = MaterialTheme.typography.bodyMedium) }
+        }
+        SmallAction(self, State.Update) {}
     }
 }
 
@@ -398,7 +419,7 @@ private fun NetImage(
 private fun SearchScreen(onOpen: (String) -> Unit) {
     val st = states()
     var query by rememberSaveable { mutableStateOf("") }
-    val apps = Store.apps.value.filter {
+    val apps = listed(LocalContext.current).filter {
         query.isBlank() || it.name.contains(query, true) || it.summary.contains(query, true) || it.category.contains(query, true)
     }
     LazyColumn(Modifier.fillMaxSize()) {
@@ -430,7 +451,7 @@ private fun SearchScreen(onOpen: (String) -> Unit) {
 private fun YouScreen(onOpen: (String) -> Unit) {
     val ctx = LocalContext.current
     val st = states()
-    val installed = Store.apps.value.filter { st[it.pkg] != State.NotInstalled }
+    val installed = listed(ctx).filter { st[it.pkg] != State.NotInstalled }
     val updates = installed.filter { st[it.pkg] == State.Update }
     LazyColumn(Modifier.fillMaxSize()) {
         item {
@@ -606,7 +627,7 @@ private fun DetailScreen(a: AppEntry, onOpen: (String) -> Unit, onBack: () -> Un
                 (if (historyOpen) versions else versions.take(3)).forEach { VersionRow(a, it, installed, task == null) }
             }
 
-            val others = Store.apps.value.filter { it.pkg != a.pkg }
+            val others = listed(ctx).filter { it.pkg != a.pkg }
             if (others.isNotEmpty()) {
                 SectionHeader("Inne aplikacje $PUBLISHER")
                 others.forEach { AppRow(it, st[it.pkg] ?: State.NotInstalled, onOpen) }
@@ -643,7 +664,7 @@ private fun InfoLine(icon: ImageVector, title: String, body: String) {
 
 private fun requestInstall(ctx: Context, a: AppEntry, rel: Release) {
     if (!ctx.packageManager.canRequestPackageInstalls()) {
-        Store.message.value = "Zezwól Sklepowi na instalowanie aplikacji i wróć"
+        Store.message.value = "Zezwól LABstore na instalowanie aplikacji i wróć"
         ctx.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${ctx.packageName}")))
     } else Store.install(ctx, a, rel)
 }

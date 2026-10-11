@@ -27,14 +27,14 @@
     },
     {
       "package": "com.gangg111.sklep",
-      "name": "Sklep",
+      "name": "LABstore",
       "repo": "gangg111/Sklep",
       "category": "Narzędzia",
       "summary": "Sklep z aplikacjami DK-LAB: instalacja i aktualizacje w jednym miejscu",
-      "description": "Lista aplikacji DK-LAB z wydań na GitHubie. Instalacja jednym przyciskiem, pobieranie w tle z wznawianiem po przerwie, sprawdzanie sumy SHA-256, powiadomienia o nowych wersjach, historia wersji i wersje testowe. Sklep aktualizuje też sam siebie.",
+      "description": "Lista aplikacji DK-LAB z wydań na GitHubie. Instalacja jednym przyciskiem, pobieranie w tle z wznawianiem po przerwie, sprawdzanie sumy SHA-256, powiadomienia o nowych wersjach, historia wersji i wersje testowe. LABstore aktualizuje też sam siebie.",
       "icon": "icons/sklep.png",
       "screenshots": [],
-      "apk": "sklep.apk"
+      "apk": "labstore.apk"
     }
   ]
 }
