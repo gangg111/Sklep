@@ -37,6 +37,8 @@ data class AppEntry(
     val pkg: String, val name: String, val repo: String, val category: String,
     val summary: String, val description: String, val icon: String,
     val screenshots: List<String>, val apkName: String?,
+    /** Grafika promocyjna jak „feature graphic” w Play (~1024×500). */
+    val banner: String = "",
 )
 
 data class Release(
@@ -130,6 +132,7 @@ object Store {
                 description = o.optString("description"), icon = o.optString("icon"),
                 screenshots = shots?.let { s -> (0 until s.length()).map { s.getString(it) } } ?: emptyList(),
                 apkName = o.optString("apk").ifEmpty { null },
+                banner = o.optString("banner"),
             )
         }
     }

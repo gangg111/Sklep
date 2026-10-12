@@ -292,7 +292,12 @@ private fun FeaturedCard(a: AppEntry, state: State, onOpen: (String) -> Unit) {
             .background(c.surfaceContainerLow).clickable { onOpen(a.pkg) },
     ) {
         Box(Modifier.fillMaxWidth().height(190.dp)) {
-            a.screenshots.firstOrNull()?.let { NetImage(it, 600.dp, Modifier.fillMaxSize(), ContentScale.Crop, Alignment.TopCenter) }
+            // Bez grafiki promocyjnej (albo zanim się wczyta): ikona na gradiencie, nigdy pusty pas.
+            Box(
+                Modifier.fillMaxSize().background(Brush.linearGradient(listOf(c.secondaryContainer, c.surfaceContainerHighest))),
+                contentAlignment = Alignment.Center,
+            ) { AppIcon(a, 96.dp) }
+            if (a.banner.isNotEmpty()) NetImage(a.banner, 600.dp, Modifier.fillMaxSize(), ContentScale.Crop)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))))
             Text(
                 "Najnowsze wydanie: ${Store.releases[a.pkg]?.tag ?: ""}", Modifier.align(Alignment.BottomStart).padding(20.dp, 16.dp),
