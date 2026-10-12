@@ -235,7 +235,7 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
         if (Store.loading.value) item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(16.dp, 12.dp, 16.dp, 0.dp)) }
         if (Store.offline.value) item {
             Text(
-                "Brak połączenia z katalogiem online, pokazuję listę wbudowaną w aplikację.",
+                "Brak połączenia z katalogiem online, pokazuję ostatnio pobraną listę.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 0.dp),
             )

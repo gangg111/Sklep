@@ -25,11 +25,13 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 
-const val CATALOG_URL = "https://raw.githubusercontent.com/gangg111/Sklep/main/catalog.json"
+/** Katalog żyje w osobnym repo: zmiana listy aplikacji nie wymaga wydania LABstore. */
+const val CATALOG_URL = "https://raw.githubusercontent.com/gangg111/LABstore-katalog/main/catalog.json"
 
 data class AppEntry(
     val pkg: String, val name: String, val repo: String, val category: String,
@@ -66,7 +68,7 @@ object Store {
     /** Pakiet do otwarcia z powiadomienia. */
     val openRequest = mutableStateOf<String?>(null)
 
-    private var base = CATALOG_URL.substringBeforeLast('/') + "/"
+    private val base = CATALOG_URL.substringBeforeLast('/') + "/"
     private val running = HashMap<String, Job>()
 
     fun prefs(ctx: Context): SharedPreferences = ctx.getSharedPreferences("sklep", Context.MODE_PRIVATE)
@@ -82,16 +84,21 @@ object Store {
 
     /** Katalog + wydania wszystkich aplikacji; używane też przez zadanie w tle. */
     suspend fun load(ctx: Context) = withContext(Dispatchers.IO) {
+        val cache = File(ctx.filesDir, "catalog.json")
         val catalog = try {
             http(CATALOG_URL).decodeToString().also {
+                parseCatalog(it)  // uszkodzonego katalogu nie zapisujemy
+                cache.writeText(it)
                 offline.value = false
-                base = CATALOG_URL.substringBeforeLast('/') + "/"
             }
-        } catch (e: IOException) {
-            // Brak sieci: wersja wbudowana w APK.
+        } catch (e: Exception) {
+            // Brak sieci albo błąd w katalogu: ostatnia poprawnie pobrana wersja.
             offline.value = true
-            base = "asset:"
-            ctx.assets.open("catalog.json").use { it.readBytes().decodeToString() }
+            if (!cache.exists()) {
+                message.value = "Nie udało się pobrać katalogu: ${e.message}"
+                return@withContext
+            }
+            cache.readText()
         }
         apps.value = parseCatalog(catalog)
         val beta = prefs(ctx).getBoolean("beta", false)
@@ -352,7 +359,7 @@ object Store {
 
     private val images = LruCache<String, Bitmap>(24)
 
-    /** Ścieżka względna w katalogu odnosi się do miejsca, skąd przyszedł katalog (repo albo assets). */
+    /** Ścieżka względna w katalogu odnosi się do repo katalogu. */
     suspend fun image(ctx: Context, src: String, maxPx: Int): Bitmap? = withContext(Dispatchers.IO) {
         if (src.isEmpty()) return@withContext null
         val key = "$src@$maxPx"
@@ -360,7 +367,6 @@ object Store {
         runCatching {
             val bytes = when {
                 src.startsWith("http") -> http(src)
-                base == "asset:" -> ctx.assets.open(src).use { it.readBytes() }
                 else -> http(base + src)
             }
             val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
