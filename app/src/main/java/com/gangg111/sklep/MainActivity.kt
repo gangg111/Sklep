@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -213,8 +214,8 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
     val self = Store.apps.value.firstOrNull { it.pkg == ctx.packageName }
     val apps = all.filter { category == null || it.category == category }
     val updates = apps.filter { st[it.pkg] == State.Update }
-    // Wyróżniona: aplikacja z najświeższym wydaniem.
-    val featured = all.maxByOrNull { Store.releases[it.pkg]?.date ?: "" }
+    // Wyróżnione: od najświeższego wydania, przewijane jak karuzela w Play.
+    val featured = all.sortedByDescending { Store.releases[it.pkg]?.date ?: "" }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
@@ -240,7 +241,7 @@ private fun HomeScreen(onOpen: (String) -> Unit) {
                 modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 0.dp),
             )
         }
-        if (category == null && featured != null) item { FeaturedCard(featured, st[featured.pkg]!!, onOpen) }
+        if (category == null && featured.isNotEmpty()) item { FeaturedCarousel(featured, st, onOpen) }
         if (updates.isNotEmpty()) {
             item { SectionHeader("Dostępne aktualizacje") }
             items(updates, key = { "u" + it.pkg }) { AppRow(it, st[it.pkg]!!, onOpen) }
@@ -284,11 +285,40 @@ private fun PlayChip(text: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** Co 5 s przesuwa w lewo; strony „bez końca”, więc po ostatniej znów w lewo na pierwszą. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FeaturedCarousel(apps: List<AppEntry>, st: Map<String, State>, onOpen: (String) -> Unit) {
+    val n = apps.size
+    val pager = rememberPagerState(initialPage = if (n > 1) n * 1000 else 0) { if (n > 1) Int.MAX_VALUE else n }
+    if (n > 1) LaunchedEffect(pager.settledPage, pager.isScrollInProgress) {
+        if (pager.isScrollInProgress) return@LaunchedEffect
+        delay(5000)
+        pager.animateScrollToPage(pager.currentPage + 1)
+    }
+    HorizontalPager(
+        pager, Modifier.padding(top = 20.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp), pageSpacing = 8.dp, verticalAlignment = Alignment.Top,
+    ) { p ->
+        val a = apps[p % n]
+        FeaturedCard(a, st[a.pkg] ?: State.NotInstalled, onOpen)
+    }
+    if (n > 1) Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.Center) {
+        repeat(n) { i ->
+            val on = pager.currentPage % n == i
+            Box(
+                Modifier.padding(3.dp).size(if (on) 8.dp else 6.dp).clip(CircleShape)
+                    .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+            )
+        }
+    }
+}
+
 @Composable
 private fun FeaturedCard(a: AppEntry, state: State, onOpen: (String) -> Unit) {
     val c = MaterialTheme.colorScheme
     Column(
-        Modifier.padding(16.dp, 20.dp, 16.dp, 4.dp).clip(RoundedCornerShape(24.dp))
+        Modifier.clip(RoundedCornerShape(24.dp))
             .background(c.surfaceContainerLow).clickable { onOpen(a.pkg) },
     ) {
         Box(Modifier.fillMaxWidth().height(190.dp)) {
